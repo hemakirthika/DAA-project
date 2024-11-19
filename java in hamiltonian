@@ -1,0 +1,108 @@
+import java.util.*;
+
+public class Main { // Changed class name to Main for compatibility with Programiz
+
+    // Class to represent the graph
+    static class Graph {
+        private Map<String, List<String>> adjList = new HashMap<>();
+
+        // Add an edge to the graph
+        public void addEdge(String from, String to) {
+            adjList.computeIfAbsent(from, k -> new ArrayList<>()).add(to);
+        }
+
+        // Get all nodes in the graph
+        public Set<String> getNodes() {
+            return adjList.keySet();
+        }
+
+        // Get neighbors of a node
+        public List<String> getNeighbors(String node) {
+            return adjList.getOrDefault(node, new ArrayList<>());
+        }
+    }
+
+    // Build a k-mer graph from DNA reads
+    public static Graph buildKmerGraph(List<String> reads, int k) {
+        Graph graph = new Graph();
+        for (String read : reads) {
+            // Ensure indices are valid
+            for (int i = 0; i <= read.length() - k - 1; i++) {
+                String kmerStart = read.substring(i, i + k);
+                String kmerEnd = read.substring(i + 1, i + k + 1);
+                graph.addEdge(kmerStart, kmerEnd);
+            }
+        }
+        return graph;
+    }
+
+    // Find Hamiltonian Path using backtracking
+    public static List<String> findHamiltonianPath(Graph graph) {
+        Set<String> nodes = graph.getNodes();
+        for (String startNode : nodes) {
+            List<String> path = new ArrayList<>();
+            Set<String> visited = new HashSet<>();
+            if (dfs(graph, startNode, visited, path, nodes.size())) {
+                return path;
+            }
+        }
+        return null; // No Hamiltonian Path found
+    }
+
+    private static boolean dfs(Graph graph, String current, Set<String> visited, List<String> path, int totalNodes) {
+        visited.add(current);
+        path.add(current);
+
+        // If all nodes are visited, we found a Hamiltonian path
+        if (visited.size() == totalNodes) {
+            return true;
+        }
+
+        for (String neighbor : graph.getNeighbors(current)) {
+            if (!visited.contains(neighbor)) {
+                if (dfs(graph, neighbor, visited, path, totalNodes)) {
+                    return true;
+                }
+            }
+        }
+
+        // Backtrack
+        visited.remove(current);
+        path.remove(path.size() - 1);
+        return false;
+    }
+
+    // Assemble genome from a Hamiltonian path
+    public static String assembleGenome(List<String> path) {
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        StringBuilder genome = new StringBuilder(path.get(0));
+        for (int i = 1; i < path.size(); i++) {
+            genome.append(path.get(i).charAt(path.get(i).length() - 1));
+        }
+        return genome.toString();
+    }
+
+    public static void main(String[] args) {
+        // Example DNA reads
+        List<String> reads = Arrays.asList("AGCT", "GCTA", "CTAG", "TAGC");
+        int k = 3; // Length of k-mers
+
+        // Step 1: Build k-mer graph
+        Graph kmerGraph = buildKmerGraph(reads, k);
+
+        // Step 2: Find Hamiltonian path
+        List<String> hamiltonianPath = findHamiltonianPath(kmerGraph);
+
+        if (hamiltonianPath != null) {
+            System.out.println("Hamiltonian Path Found: " + hamiltonianPath);
+
+            // Step 3: Assemble genome
+            String assembledGenome = assembleGenome(hamiltonianPath);
+            System.out.println("Assembled Genome: " + assembledGenome);
+        } else {
+            System.out.println("No Hamiltonian Path Found!");
+        }
+    }
+}
